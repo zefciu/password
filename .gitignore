@@ -1,0 +1,6 @@
+password.egg-info
+__pycache__
+*.swp
+build/
+dist/
+.coverage
