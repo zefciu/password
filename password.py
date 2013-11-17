@@ -5,7 +5,9 @@ It is up to you to find a way for persistence of hash and salt, so this is
 framework-agnostic.
 
 >>> class User(object):
-...    password = Password(method='sha1', hash_encoding='base16')
+...     password = Password(
+...         method='sha1', hash_encoding='base16', keep_on_blank=True
+...     )
 >>> user = User()
 >>> user.password = 'abcdef'
 >>> user.password #doctest: +ELLIPSIS
@@ -14,6 +16,11 @@ framework-agnostic.
 True
 >>> user.password == '12345'
 False
+>>> user.password = ''
+>>> user.password == ''
+False
+>>> user.password == 'abcdef'
+True
 """
 
 import hashlib
@@ -66,16 +73,19 @@ class Password(object):
     :param method: The hashing method (any method from hashlib)
     :param hash_encoding: The encoding of hash. None for no encoding (byte
         string) or baseXX.
+    :param keep_on_blank: If this is set to True, the password will remain
+        unchanged if blank string is provided (useful with HTML forms).
     """
 
     def __init__(
             self, hash_attr='hash', salt_attr='salt', salt_length=8,
-            method='sha512', hash_encoding=None):
+            method='sha512', hash_encoding=None, keep_on_blank=False):
         self.hash_attr = hash_attr
         self.salt_attr = salt_attr
         self.salt_length = salt_length
         self.method = method
         self.hash_encoding = hash_encoding
+        self.keep_on_blank = keep_on_blank
 
     def __get__(self, inst, cls):
         if inst is None:
@@ -88,6 +98,8 @@ class Password(object):
         )
 
     def __set__(self, inst, value):
+        if value == '' and self.keep_on_blank:
+            return
         hash, salt = _generate_hash_salt(
             value, self.method, self.hash_encoding,
             salt_length = self.salt_length
